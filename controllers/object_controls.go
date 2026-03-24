@@ -3298,16 +3298,12 @@ func resolveDriverTag(n ClusterPolicyController, driverSpec interface{}) (string
 	return image, nil
 }
 
-func getOSName(osTag string) string {
-	// Extract base OS ID by stripping version suffix from osTag
-	// Examples: "rhel10" -> "rhel", "ubuntu22.04" -> "ubuntu", "rocky9" -> "rocky"
-	osID := strings.TrimRight(osTag, "0123456789.")
-	return osID
-}
-
 // getRepoConfigPath returns the standard OS specific path for repository configuration files.
 func (n ClusterPolicyController) getRepoConfigPath() (string, error) {
-	osID := getOSName(n.gpuNodeOSTag)
+	osID := n.gpuNodeOSRelease
+	if osID == "" {
+		return "", fmt.Errorf("GPU node OS name is empty")
+	}
 	if path, ok := RepoConfigPathMap[osID]; ok {
 		return path, nil
 	}
@@ -3316,7 +3312,10 @@ func (n ClusterPolicyController) getRepoConfigPath() (string, error) {
 
 // getCertConfigPath returns the standard OS specific path for ssl keys/certificates.
 func (n ClusterPolicyController) getCertConfigPath() (string, error) {
-	osID := getOSName(n.gpuNodeOSTag)
+	osID := n.gpuNodeOSRelease
+	if osID == "" {
+		return "", fmt.Errorf("GPU node OS name is empty")
+	}
 	if path, ok := CertConfigPathMap[osID]; ok {
 		return path, nil
 	}
@@ -3326,7 +3325,10 @@ func (n ClusterPolicyController) getCertConfigPath() (string, error) {
 // getSubscriptionPathsToVolumeSources returns the MountPathToVolumeSource map containing all
 // OS-specific subscription/entitlement paths that need to be mounted in the container.
 func (n ClusterPolicyController) getSubscriptionPathsToVolumeSources() (MountPathToVolumeSource, error) {
-	osID := getOSName(n.gpuNodeOSTag)
+	osID := n.gpuNodeOSRelease
+	if osID == "" {
+		return nil, fmt.Errorf("GPU node OS name is empty")
+	}
 	if pathToVolumeSource, ok := SubscriptionPathMap[osID]; ok {
 		return pathToVolumeSource, nil
 	}
@@ -3594,7 +3596,10 @@ func transformDriverContainer(obj *appsv1.DaemonSet, config *gpuv1.ClusterPolicy
 		}
 	}
 
-	osID := getOSName(n.gpuNodeOSTag)
+	osID := n.gpuNodeOSRelease
+	if osID == "" {
+		return fmt.Errorf("ERROR: failed to determine GPU node OS name")
+	}
 	// set up subscription entitlements for RHEL(using K8s with a non-CRIO runtime) and SLES
 	if (osID == "rhel" && n.openshift == "" && n.runtime != gpuv1.CRIO) || osID == "sles" || osID == "sl-micro" {
 		n.logger.Info("Mounting subscriptions into the driver container", "OS", osID)

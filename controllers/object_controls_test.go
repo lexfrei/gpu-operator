@@ -225,13 +225,14 @@ func setup() error {
 	if gpuNodeCount == 0 {
 		return fmt.Errorf("no gpu nodes in mock cluster")
 	}
-	gpuNodeOSTag, err := clusterPolicyController.getGPUNodeOSTag()
+	gpuNodeOSRelease, gpuNodeOSTag, err := clusterPolicyController.getGPUNodeOSInfo()
 	if err != nil {
 		return fmt.Errorf("unable to get GPU node tag: %w", err)
 	}
 
 	clusterPolicyController.hasGPUNodes = gpuNodeCount != 0
 	clusterPolicyController.hasNFDLabels = hasNFDLabels
+	clusterPolicyController.gpuNodeOSRelease = gpuNodeOSRelease
 	clusterPolicyController.gpuNodeOSTag = gpuNodeOSTag
 
 	// setup kernelVersionMap for pre-compiled driver tests
